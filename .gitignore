@@ -1,0 +1,29 @@
+# API keys
+.env
+.env.*
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# Results (28 GB, not tracked)
+results/
+logs/
+
+# System
+.DS_Store
+*.swp
+*.tmp
+*.log
+*.out
+*.err
+
+# Repo-specific
+main-fig.pdf
+general_agent/data/
