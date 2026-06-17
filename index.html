@@ -1,670 +1,641 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="DivInit: a training-free method for diverse query initialization in parallel agentic search. EMNLP 2026.">
-  <title>DivInit — Beyond Parallel Sampling</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="utf-8">
+  <meta name="description" content="DivInit: Diverse Query Initialization for Parallel Agentic Search. A training-free method that fixes anchor collapse in parallel agentic search by enforcing query diversity at turn 1.">
+  <meta name="keywords" content="DivInit, agentic search, parallel sampling, query diversity, anchor collapse, LLM agents">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Beyond Parallel Sampling — DivInit</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+
   <style>
-    :root {
-      --bg: #ffffff;
-      --bg-alt: #f8f9fb;
-      --bg-blue: #eff6ff;
-      --text: #18181b;
-      --text-muted: #6b7280;
-      --text-light: #9ca3af;
-      --accent: #1d4ed8;
-      --accent-dark: #1e40af;
-      --accent-green: #15803d;
-      --accent-red: #b91c1c;
-      --border: #e5e7eb;
-      --border-light: #f3f4f6;
-      --code-bg: #1e293b;
-      --code-text: #e2e8f0;
-      --max-w: 860px;
-      --gap: 3.5rem;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+    /* ── Base ── */
     html { scroll-behavior: smooth; }
-
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 16px;
-      line-height: 1.72;
-      color: var(--text);
-      background: var(--bg);
-      -webkit-font-smoothing: antialiased;
+      font-family: 'Noto Sans', sans-serif;
+      font-size: 1.1rem;
+      line-height: 1.7;
+      color: #4a4a4a;
     }
 
-    /* ─── NAV ─── */
-    nav {
-      position: sticky;
-      top: 0;
-      z-index: 200;
-      background: rgba(255, 255, 255, 0.94);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--border);
-    }
-    nav .nav-inner {
-      max-width: var(--max-w);
-      margin: 0 auto;
-      padding: 0 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 2.25rem;
-      height: 48px;
-    }
-    nav a {
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 0.845rem;
-      font-weight: 500;
-      letter-spacing: 0.01em;
-      transition: color 0.15s;
-    }
-    nav a:hover { color: var(--accent); }
+    /* ── Publication header ── */
+    .publication-title  { font-family: 'Google Sans', sans-serif; }
+    .publication-authors { font-family: 'Google Sans', sans-serif; }
+    .publication-authors a { color: hsl(204, 86%, 53%) !important; font-weight: 500; }
+    .publication-authors a:hover { text-decoration: underline; }
+    .author-block { display: inline-block; }
 
-    /* ─── CONTAINER ─── */
-    .container {
-      max-width: var(--max-w);
-      margin: 0 auto;
-      padding: 0 1.5rem;
+    .teaser { font-family: 'Google Sans', sans-serif; }
+    .teaser .hero-body { padding-top: 0; padding-bottom: 1.5rem; }
+
+    /* ── Link buttons ── */
+    .link-block a { margin-top: 5px; margin-bottom: 5px; }
+
+    /* ── Section h3 with orange underline ── */
+    .section .title.is-3 {
+      position: relative;
+      padding-bottom: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .section .title.is-3::after {
+      content: '';
+      display: block;
+      width: 90px;
+      height: 4px;
+      background: linear-gradient(90deg, #FF9E4A, #ED8537);
+      border-radius: 2px;
+      margin: 0.5rem auto 0;
     }
 
-    /* ─── HEADER / HERO ─── */
-    header {
-      max-width: var(--max-w);
-      margin: 0 auto;
-      padding: 4rem 1.5rem 2.5rem;
+    /* ── Teaser text ── */
+    .teaser-text {
+      max-width: 800px;
+      margin: 0.75rem auto 0;
+      font-family: 'Google Sans', sans-serif;
+      font-size: 1.2rem;
+      line-height: 1.8;
+      color: #333;
+    }
+    .teaser-text p { margin-bottom: 0.35rem; font-weight: 500; }
+
+    /* ── Highlight blob ── */
+    .highlight-blob {
+      background: radial-gradient(ellipse at center, rgba(255, 100, 100, 0.18) 0%, transparent 70%);
+      border-radius: 70%;
+      padding: 0.1em 0.5em;
+    }
+
+    /* ── Figure captions ── */
+    .figure-caption {
+      font-size: 1.0rem;
+      color: #555;
+      margin-top: 0.75rem;
       text-align: center;
-    }
-    .venue-tag {
-      display: inline-block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--accent);
-      background: var(--bg-blue);
-      padding: 0.25rem 0.75rem;
-      border-radius: 9999px;
-      margin-bottom: 1.4rem;
-    }
-    .paper-title {
-      font-size: 2.2rem;
-      font-weight: 700;
-      line-height: 1.22;
-      letter-spacing: -0.025em;
-      color: var(--text);
-      margin-bottom: 1.75rem;
-    }
-    .authors {
-      font-size: 0.98rem;
-      line-height: 2;
-      margin-bottom: 0.5rem;
-    }
-    .authors a {
-      color: var(--text);
-      text-decoration: none;
-      font-weight: 500;
-      border-bottom: 1px solid transparent;
-      transition: border-color 0.15s, color 0.15s;
-    }
-    .authors a:hover { color: var(--accent); border-bottom-color: var(--accent); }
-    sup.aff {
-      font-size: 0.6rem;
-      color: var(--accent);
-      font-weight: 600;
-      vertical-align: super;
-    }
-    .affiliations {
-      font-size: 0.82rem;
-      color: var(--text-muted);
-      margin-bottom: 2rem;
-      line-height: 1.9;
-    }
-    .links {
-      display: flex;
-      gap: 0.7rem;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.48rem 1.15rem;
-      border-radius: 9999px;
-      font-size: 0.855rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.15s;
-      border: 1.5px solid transparent;
-    }
-    .btn-primary {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
-    }
-    .btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
-    .btn-secondary {
-      background: transparent;
-      color: var(--text);
-      border-color: var(--border);
-    }
-    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* ─── HERO FIGURE ─── */
-    .hero-fig {
-      margin: 2.75rem 0 0;
-      text-align: center;
-    }
-    .hero-fig img {
-      max-width: 100%;
-      width: 600px;
-      border-radius: 10px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.07);
-    }
-
-    /* ─── SECTION ─── */
-    section {
-      padding: var(--gap) 0;
-    }
-    section + section {
-      border-top: 1px solid var(--border);
-    }
-    h2 {
-      font-size: 1.35rem;
-      font-weight: 700;
-      letter-spacing: -0.015em;
-      margin-bottom: 1.1rem;
-      color: var(--text);
-    }
-    h3 {
-      font-size: 1rem;
-      font-weight: 650;
-      margin-top: 1.75rem;
-      margin-bottom: 0.6rem;
-      color: var(--text);
-    }
-    p { margin-bottom: 1rem; }
-    p:last-child { margin-bottom: 0; }
-
-    /* ─── HIGHLIGHT BOX ─── */
-    .callout {
-      background: var(--bg-blue);
-      border-left: 3px solid var(--accent);
-      border-radius: 0 8px 8px 0;
-      padding: 0.95rem 1.2rem;
-      margin: 1.5rem 0;
-      font-size: 0.95rem;
-    }
-    .callout strong { color: var(--accent); }
-
-    /* ─── FIGURES ─── */
-    figure {
-      margin: 2rem 0;
-      text-align: center;
-    }
-    figure img {
-      max-width: 100%;
-      border-radius: 8px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 3px 12px rgba(0,0,0,0.06);
-    }
-    figcaption {
-      margin-top: 0.8rem;
-      font-size: 0.845rem;
-      color: var(--text-muted);
-      line-height: 1.55;
-      max-width: 620px;
+      font-style: italic;
+      max-width: 720px;
       margin-left: auto;
       margin-right: auto;
-      font-style: italic;
     }
-    figcaption strong { font-style: normal; color: var(--text); }
 
-    .fig-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2rem;
-      align-items: start;
+    /* ── Content sections ── */
+    .section .content p { line-height: 1.7; color: #4a4a4a; }
+
+    /* ── Intro two-up figures ── */
+    .intro-figures {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      align-items: flex-start;
     }
-    .fig-row figure { margin: 0; }
+    .intro-figures .intro-fig-item {
+      flex: 1;
+      max-width: 360px;
+      text-align: center;
+    }
+    .intro-figures .intro-fig-item img {
+      width: 100%;
+      border-radius: 8px;
+    }
+    @media (max-width: 768px) {
+      .intro-figures { flex-direction: column; align-items: center; }
+    }
 
-    /* ─── METHOD STEPS ─── */
-    .steps {
-      margin: 1.5rem 0;
+    /* ── Method steps ── */
+    .method-steps {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 1.1rem;
+      margin: 1.5rem 0;
     }
-    .step {
+    .method-step {
       display: flex;
       gap: 1rem;
       align-items: flex-start;
     }
-    .step-n {
+    .step-number {
       flex-shrink: 0;
-      width: 26px;
-      height: 26px;
-      background: var(--accent);
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #FF9E4A, #ED8537);
       color: #fff;
       border-radius: 50%;
-      font-size: 0.78rem;
+      font-family: 'Google Sans', sans-serif;
+      font-size: 0.9rem;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-top: 0.2rem;
+      margin-top: 0.15rem;
     }
-    .step-body { line-height: 1.6; }
-    .step-body strong { color: var(--text); }
-    .step-body p { margin: 0; }
+    .step-text {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 1.1rem;
+      line-height: 1.7;
+      color: #333;
+    }
 
-    /* ─── COMPUTE BOX ─── */
-    .compute {
-      background: var(--bg-alt);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem 1.4rem;
+    /* ── Compute comparison box ── */
+    .compute-box {
+      background: #f8f9fa;
+      border: 1px solid #e8e8e8;
+      border-left: 4px solid #ED8537;
+      border-radius: 0 8px 8px 0;
+      padding: 1rem 1.5rem;
       margin: 1.5rem 0;
-      font-family: 'Courier New', 'Lucida Console', monospace;
-      font-size: 0.88rem;
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
       line-height: 2;
     }
-    .compute .lbl { color: var(--text-muted); display: inline-block; min-width: 90px; }
-    .compute .eq { color: var(--text); font-weight: 600; }
-    .compute .note { font-size: 0.78rem; color: var(--text-light); font-family: 'Inter', sans-serif; }
+    .compute-box .clabel { color: #888; min-width: 90px; display: inline-block; }
+    .compute-box .cval { color: #222; font-weight: 700; }
+    .compute-box .cnote { font-family: 'Noto Sans', sans-serif; font-size: 0.85rem; color: #999; }
 
-    /* ─── RESULTS TABLE ─── */
-    .table-wrap {
+    /* ── Results table ── */
+    .results-table-wrap {
       overflow-x: auto;
       margin: 1.5rem 0;
-      border: 1px solid var(--border);
-      border-radius: 8px;
     }
-    table {
+    .results-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.8rem;
-      min-width: 720px;
+      font-size: 0.88rem;
+      min-width: 740px;
+      font-family: 'Noto Sans', sans-serif;
     }
-    thead tr.group-label th {
-      background: var(--bg-alt);
-      padding: 0.5rem 0.7rem;
-      font-size: 0.72rem;
+    .results-table thead th {
+      background: #f5f5f5;
+      padding: 0.55rem 0.65rem;
       font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border);
+      text-align: center;
+      border-bottom: 2px solid #ddd;
+      border-top: 2px solid #ddd;
+      white-space: nowrap;
+      font-size: 0.82rem;
     }
-    thead tr.group-label th.section-start {
-      border-left: 2px solid var(--border);
+    .results-table thead th:first-child { text-align: left; }
+    .results-table thead th.sec-start { border-left: 2px solid #ccc; }
+    .results-table tbody td {
+      padding: 0.5rem 0.65rem;
+      text-align: center;
+      border-bottom: 1px solid #efefef;
+      white-space: nowrap;
     }
-    thead tr.col-header th {
-      background: var(--bg-alt);
-      padding: 0.55rem 0.7rem;
+    .results-table tbody td:first-child { text-align: left; font-weight: 600; }
+    .results-table tbody td.sec-start { border-left: 2px solid #ccc; }
+    .results-table tbody tr:nth-child(even) td { background: #fafafa; }
+    .gain { color: #16a34a; font-weight: 700; }
+    .loss { color: #b91c1c; }
+    .dash { color: #bbb; }
+    .avg-td { background: #fff8f0 !important; font-weight: 700; }
+    .arrow-sep { color: #ccc; }
+    .results-table thead tr.group-row th {
       font-size: 0.78rem;
-      font-weight: 600;
-      text-align: center;
-      border-bottom: 2px solid var(--border);
-      white-space: nowrap;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #888;
+      background: #f0f0f0;
+      padding: 0.35rem 0.65rem;
     }
-    thead tr.col-header th:first-child { text-align: left; }
-    thead tr.col-header th.section-start {
-      border-left: 2px solid var(--border);
-    }
-    tbody td {
-      padding: 0.52rem 0.7rem;
-      text-align: center;
-      border-bottom: 1px solid var(--border-light);
-      white-space: nowrap;
-    }
-    tbody tr:last-child td { border-bottom: none; }
-    tbody td:first-child { text-align: left; font-weight: 600; font-size: 0.82rem; }
-    tbody td.section-start { border-left: 2px solid var(--border); }
-    .arrow { color: var(--text-light); }
-    .gain { color: var(--accent-green); font-weight: 700; }
-    .loss { color: var(--accent-red); }
-    .dash { color: var(--text-light); }
-    tbody tr:nth-child(even) td { background: #fafafa; }
-    .avg-col { font-weight: 600; background: var(--bg-blue) !important; }
 
-    /* ─── BIBTEX ─── */
-    .bib-wrap {
-      position: relative;
-      margin-top: 1.25rem;
-    }
-    .bibtex {
-      background: var(--code-bg);
-      color: var(--code-text);
+    /* ── BibTeX ── */
+    .bibtex-block {
+      background: #1e293b;
+      color: #e2e8f0;
       border-radius: 8px;
-      padding: 1.3rem 1.5rem;
-      font-family: 'Courier New', 'Lucida Console', monospace;
-      font-size: 0.81rem;
-      line-height: 1.65;
+      padding: 1.4rem 1.6rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.88rem;
+      line-height: 1.7;
       overflow-x: auto;
       white-space: pre;
+      position: relative;
     }
-    .copy-btn {
+    .bibtex-copy {
       position: absolute;
-      top: 0.65rem;
-      right: 0.65rem;
-      background: rgba(255,255,255,0.08);
+      top: 0.75rem;
+      right: 0.75rem;
+      background: rgba(255,255,255,0.1);
       color: #94a3b8;
-      border: 1px solid rgba(255,255,255,0.12);
-      padding: 0.28rem 0.65rem;
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 0.25rem 0.65rem;
       border-radius: 5px;
-      font-size: 0.75rem;
-      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      font-family: 'Noto Sans', sans-serif;
       cursor: pointer;
       transition: all 0.15s;
     }
-    .copy-btn:hover { background: rgba(255,255,255,0.16); color: #fff; }
+    .bibtex-copy:hover { background: rgba(255,255,255,0.2); color: #fff; }
 
-    /* ─── FOOTER ─── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 2.25rem 1.5rem;
-      text-align: center;
+    /* ── Floating TOC ── */
+    .toc-wrapper {
+      position: fixed;
+      top: 50%;
+      right: 2rem;
+      transform: translateY(-50%);
+      z-index: 100;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.10);
+      min-width: 170px;
+    }
+    .toc-wrapper h4 {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #222;
+      margin: 0 0 10px 0;
+    }
+    .toc-wrapper h4 a { color: #222; text-decoration: none; }
+    .toc-wrapper h4 a:hover { color: #ED8537; }
+    .toc-list { list-style: none; margin: 0; padding: 0; }
+    .toc-list li { margin-bottom: 2px; }
+    .toc-link {
+      display: block;
+      font-family: 'Google Sans', sans-serif;
       font-size: 0.82rem;
-      color: var(--text-muted);
-      line-height: 1.8;
+      color: #555;
+      text-decoration: none;
+      padding: 0.22rem 0;
+      transition: color 0.2s;
+      white-space: nowrap;
     }
-    footer a { color: var(--text-muted); text-decoration: underline; }
-    footer a:hover { color: var(--accent); }
+    .toc-link:hover { color: #ED8537; }
+    .toc-link.is-active { color: #ED8537; font-weight: 600; }
+    @media (max-width: 1400px) { .toc-wrapper { display: none; } }
 
-    /* ─── RESPONSIVE ─── */
-    @media (max-width: 640px) {
-      .paper-title { font-size: 1.65rem; }
-      .fig-row { grid-template-columns: 1fr; }
-      nav .nav-inner { gap: 1.2rem; }
-    }
+    /* ── Footer ── */
+    .footer { background-color: #F5F7FA; }
   </style>
 </head>
 <body>
 
-<!-- ── NAV ── -->
-<nav>
-  <div class="nav-inner">
-    <a href="#abstract">Abstract</a>
-    <a href="#problem">Problem</a>
-    <a href="#method">Method</a>
-    <a href="#results">Results</a>
-    <a href="#citation">Citation</a>
-  </div>
-</nav>
+<!-- ── Floating Table of Contents ── -->
+<div class="toc-wrapper" id="floating-toc">
+  <h4><a href="#">Contents</a></h4>
+  <ul class="toc-list">
+    <li><a href="#section-intro"   class="toc-link" data-section="section-intro">Introduction</a></li>
+    <li><a href="#section-problem" class="toc-link" data-section="section-problem">Anchor Collapse</a></li>
+    <li><a href="#section-method"  class="toc-link" data-section="section-method">DivInit</a></li>
+    <li><a href="#section-results" class="toc-link" data-section="section-results">Results</a></li>
+    <li><a href="#BibTeX"          class="toc-link" data-section="BibTeX">BibTeX</a></li>
+  </ul>
+</div>
 
-<!-- ── HEADER ── -->
-<header>
-  <div class="venue-tag">Preprint · EMNLP 2026</div>
-  <h1 class="paper-title">Beyond Parallel Sampling:<br>Diverse Query Initialization for Agentic Search</h1>
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
 
-  <div class="authors">
-    <a href="https://github.com/sid-in-the-loop">Sidhaarth Murali</a><sup class="aff">a</sup>&thinsp;,&ensp;
-    João Coelho<sup class="aff">a,b</sup>&thinsp;,&ensp;
-    Jingjie Ning<sup class="aff">a</sup>&thinsp;,&ensp;
-    João Magalhães<sup class="aff">c</sup>&thinsp;,&ensp;
-    Bruno Martins<sup class="aff">b</sup>&thinsp;,&ensp;
-    Chenyan Xiong<sup class="aff">a</sup>
-  </div>
-  <div class="affiliations">
-    <sup>a</sup>&thinsp;Carnegie Mellon University &nbsp;&nbsp;
-    <sup>b</sup>&thinsp;IST Lisboa / INESC-ID &nbsp;&nbsp;
-    <sup>c</sup>&thinsp;Universidade Nova de Lisboa
-  </div>
+          <h1 class="title is-1 publication-title">
+            Beyond Parallel Sampling:<br>Diverse Query Initialization for Agentic Search
+          </h1>
 
-  <div class="links">
-    <a class="btn btn-primary" href="https://arxiv.org/abs/2606.17209" target="_blank">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      arXiv
-    </a>
-    <a class="btn btn-secondary" href="https://github.com/cxcscmu/diverse-query-initialization" target="_blank">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-      Code
-    </a>
-    <a class="btn btn-secondary" href="10583_Beyond_Parallel_Sampling.pdf" target="_blank">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      PDF
-    </a>
-  </div>
+          <div class="is-size-5 publication-authors" style="margin-bottom: 0.25rem;">
+            <span class="author-block">
+              <a href="https://github.com/sid-in-the-loop">Sidhaarth Murali</a><sup>1</sup>,</span>
+            <span class="author-block">
+              João Coelho<sup>1,2</sup>,</span>
+            <span class="author-block">
+              Jingjie Ning<sup>1</sup>,</span>
+            <span class="author-block">
+              João Magalhães<sup>3</sup>,</span>
+            <span class="author-block">
+              Bruno Martins<sup>2</sup>,</span>
+            <span class="author-block">
+              <a href="https://www.cs.cmu.edu/~cx/">Chenyan Xiong</a><sup>1</sup></span>
+          </div>
 
-  <div class="hero-fig">
-    <img src="paper_assets/figures/main-fig.png" alt="DivInit conceptual overview: standard parallel sampling collapses onto near-identical queries; DivInit enforces diversity at initialization." />
-  </div>
-</header>
+          <div class="is-size-6 publication-authors" style="margin-bottom: 1.25rem;">
+            <span class="author-block"><sup>1</sup>Language Technologies Institute, Carnegie Mellon University</span>
+            &nbsp;&nbsp;
+            <span class="author-block"><sup>2</sup>IST Lisboa / INESC-ID</span>
+            &nbsp;&nbsp;
+            <span class="author-block"><sup>3</sup>Universidade Nova de Lisboa</span>
+          </div>
 
-<!-- ── ABSTRACT ── -->
-<section id="abstract">
-  <div class="container">
-    <h2>Abstract</h2>
-    <div class="callout">
-      <strong>TL;DR</strong> — Standard parallel agentic search is bottlenecked by query redundancy at turn 1. DivInit fixes this with a single shared LLM call that seeds each thread with a maximally diverse query, improving pass@4 by <strong>+5–7 points</strong> on multi-hop QA at matched compute.
-    </div>
-    <p>
-      Running multiple search agents in parallel should, in principle, increase coverage of the answer space. In practice, threads initialized independently collapse onto near-identical first queries — a phenomenon we call <em>anchor collapse</em> — retrieve overlapping evidence, and fail together. Scaling up the thread count amplifies this problem rather than solving it.
-    </p>
-    <p>
-      We introduce <strong>DivInit</strong>, a training-free method that intervenes at turn 1 only: a single LLM call generates a pool of <em>n</em> candidate queries, and greedy max-min Jaccard selection picks <em>k</em> maximally diverse seeds. Each thread starts from its own seed; everything from turn 2 onward is unchanged. DivInit requires <em>fewer</em> total LLM calls than standard parallel sampling, plugs into any ReAct-style agent, and needs no reward model, fine-tuning, or additional search budget.
-    </p>
-    <p>
-      Across five open-weight models and eight benchmarks spanning multi-hop QA and open-web retrieval, DivInit consistently improves pass@4 by 5–7 points on multi-hop tasks. Gains scale with model capacity: near-zero at 1.7B, most pronounced at 8B and 12B — pointing to a capability floor below which models cannot productively act on varied initializations.
-    </p>
-  </div>
-</section>
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="https://arxiv.org/abs/2606.17209"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="ai ai-arxiv"></i></span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="10583_Beyond_Parallel_Sampling.pdf"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fas fa-file-pdf"></i></span>
+                  <span>Paper</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="https://github.com/cxcscmu/diverse-query-initialization"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fab fa-github"></i></span>
+                  <span>Code</span>
+                </a>
+              </span>
+            </div>
+          </div>
 
-<!-- ── PROBLEM ── -->
-<section id="problem">
-  <div class="container">
-    <h2>The Problem: Anchor Collapse</h2>
-    <p>
-      Parallel sampling at temperature <em>T</em> > 0 is supposed to introduce stochasticity. But when you measure the pairwise diversity of first-turn search queries across threads — using token-level Jaccard distance, which we call <strong>QPD</strong> (Query Pairwise Distance) — standard threads cluster tightly at QPD ≈ 0.2 regardless of temperature. The distribution barely shifts as <em>T</em> increases; the problem is structural, not thermal.
-    </p>
-
-    <figure>
-      <img src="paper_assets/figures/fig2/qpd_density.png" width="400" alt="QPD density plot: standard parallel threads cluster at low diversity; DivInit shifts the distribution to high diversity." />
-      <figcaption>
-        <strong>Query diversity at turn 1.</strong> Standard parallel sampling (blue) concentrates at low QPD regardless of temperature. DivInit (orange) shifts the distribution toward high diversity. The gap is not a matter of tuning temperature — it requires explicit initialization.
-      </figcaption>
-    </figure>
-
-    <p>
-      Low turn-1 diversity isn't just an aesthetic problem. The first query determines which documents get retrieved; overlapping retrieval means overlapping evidence; overlapping evidence means correlated trajectories and correlated failures. We quantify this with <strong>turn-1 imprint</strong>: the rank correlation between a thread's turn-1 QPD and its full-trajectory diversity.
-    </p>
-
-    <figure>
-      <img src="paper_assets/figures/fig1/turn1_imprint.png" width="360" alt="Turn-1 imprint scatter: turn-1 QPD strongly predicts full-trajectory QPD." />
-      <figcaption>
-        <strong>Turn-1 diversity predicts full-trajectory diversity</strong> (ρ = 0.42 / 0.35 across datasets). Standard threads cluster at low QPD throughout; DivInit shifts them to high QPD — and that separation persists for all subsequent turns. The first query is not one step among many: it is the trajectory.
-      </figcaption>
-    </figure>
-  </div>
-</section>
-
-<!-- ── METHOD ── -->
-<section id="method">
-  <div class="container">
-    <h2>DivInit</h2>
-    <p>
-      One intervention, at turn 1 only. No training, no reward model, no additional search budget.
-    </p>
-
-    <div class="steps">
-      <div class="step">
-        <div class="step-n">1</div>
-        <div class="step-body">
-          <p><strong>Generate a pool of <em>n</em> candidate queries</strong> in a single shared LLM call. This is the only additional overhead DivInit introduces relative to a single-thread baseline.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-n">2</div>
-        <div class="step-body">
-          <p><strong>Select <em>k</em> diverse seeds via greedy max-min Jaccard (MMR, λ = 0).</strong> Iteratively pick the candidate with the largest minimum token-level Jaccard distance to the already-selected set. Selection is milliseconds of arithmetic — no model calls, no embeddings required.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-n">3</div>
-        <div class="step-body">
-          <p><strong>Launch one thread per seed.</strong> Each thread issues its seed as its turn-1 search query. From turn 2 onward, all threads are standard ReAct — no further DivInit involvement.</p>
         </div>
       </div>
     </div>
-
-    <div class="compute">
-      <div><span class="lbl">Standard:</span> <span class="eq">k × T</span> &nbsp;<span class="note">calls&nbsp;&nbsp;(k independent turn-1 calls)</span></div>
-      <div><span class="lbl">DivInit:</span> <span class="eq">1 + k(T−1)</span> &nbsp;<span class="note">calls&nbsp;&nbsp;(one shared pool call; k−1 fewer total)</span></div>
-    </div>
-
-    <p>
-      With <em>k</em> = 4 threads and <em>T</em> = 8 turns, DivInit makes 29 LLM calls versus 32 for standard parallel sampling — a 3-call reduction at matched thread count. The selection step (greedy Jaccard on token sets) adds no model calls and completes in under one millisecond.
-    </p>
-
-    <h3>Why Jaccard and not dense embeddings?</h3>
-    <p>
-      We compared greedy Jaccard selection against dense sentence-embedding diversity (all-MiniLM-L6-v2) across pool sizes from 8 to 64 candidates. Jaccard matches or outperforms dense selection at every pool size while requiring no embedding model. For search queries — short, keyword-rich, often sharing domain vocabulary — token overlap is a well-calibrated proxy for query similarity.
-    </p>
   </div>
 </section>
 
-<!-- ── RESULTS ── -->
-<section id="results">
-  <div class="container">
-    <h2>Results</h2>
-    <p>
-      We evaluate pass@4 (any of 4 threads correct = pass) across five open-weight models and eight benchmarks: five multi-hop QA tasks (HotpotQA, MuSiQue, 2WikiMultihopQA, Bamboogle, FRAMES) and three open-web tasks (GAIA, HLE, WebWalker). All experiments use <em>k</em> = 4 threads, pool size <em>n</em> = 16, and 8 turns per thread.
-    </p>
-
-    <div class="fig-row">
-      <figure>
-        <img src="paper_assets/figures/fig3/passk_sweep.png" alt="pass@k sweep: DivInit widens the gap as k increases." />
-        <figcaption>
-          <strong>pass@k vs. thread count.</strong> The gap between DivInit and standard parallel sampling widens as <em>k</em> grows — more threads amplify the benefit of diverse initialization.
-        </figcaption>
-      </figure>
-      <figure>
-        <img src="paper_assets/figures/fig4/gain_vs_size.png" alt="Gain vs. model size: larger models benefit more from DivInit." />
-        <figcaption>
-          <strong>Gain scales with model capacity.</strong> Absolute pass@4 improvement (DivInit − Standard) across Qwen3 model sizes. Near-zero at 1.7B; most pronounced at 8B.
-        </figcaption>
-      </figure>
+<!-- ── Teaser ── -->
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <div class="columns is-centered has-text-centered" style="margin-bottom: 1.5rem;">
+        <div class="column">
+          <img src="paper_assets/figures/main-fig.png"
+               alt="DivInit overview: standard parallel sampling collapses onto near-identical queries; DivInit enforces diversity at initialization."
+               style="max-width: 620px; width: 100%; border-radius: 10px;">
+        </div>
+      </div>
+      <div class="teaser-text has-text-centered">
+        <p>
+          More parallel threads should mean better coverage. In practice, they all issue the same first query —
+          retrieve the same evidence — and <b class="highlight-blob">fail together</b>.
+          We call this <b class="highlight-blob">anchor collapse</b>, and fix it with one training-free intervention: <b class="highlight-blob">DivInit</b>.
+        </p>
+      </div>
     </div>
-
-    <p>
-      DivInit improves pass@4 by <strong>+5–7 points on multi-hop QA</strong> at matched compute, with consistent gains across all five models. Open-web gains are smaller but present. The capacity scaling pattern — gains concentrating at larger models — suggests a capability floor: small models may lack the reasoning depth to productively diverge from distinct starting points.
-    </p>
-
-    <h3>Full results — pass@4 (%): Standard → DivInit</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr class="group-label">
-            <th rowspan="2" style="vertical-align:bottom; text-align:left; padding-bottom:0.55rem;">Model</th>
-            <th colspan="6" style="border-left:2px solid var(--border); text-align:center;">Multi-hop QA</th>
-            <th colspan="4" class="section-start" style="text-align:center;">Open-Web</th>
-          </tr>
-          <tr class="col-header">
-            <th class="section-start">HpQA</th>
-            <th>MuSi</th>
-            <th>2Wiki</th>
-            <th>Bambo</th>
-            <th>FRAMES</th>
-            <th class="avg-col" style="background:var(--bg-blue);">Avg</th>
-            <th class="section-start">GAIA</th>
-            <th>HLE</th>
-            <th>WebWalker</th>
-            <th class="avg-col" style="background:var(--bg-blue);">Avg</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Qwen3-1.7B</td>
-            <td class="section-start">42.9 <span class="arrow">→</span> <span class="gain">43.8</span></td>
-            <td>14.5 <span class="arrow">→</span> <span class="gain">15.6</span></td>
-            <td>37.6 <span class="arrow">→</span> <span class="gain">41.5</span></td>
-            <td>16.8 <span class="arrow">→</span> <span class="gain">24.3</span></td>
-            <td>13.1 <span class="arrow">→</span> <span class="gain">13.6</span></td>
-            <td class="avg-col section-start">25.0 <span class="arrow">→</span> <span class="gain">27.8</span></td>
-            <td class="section-start"><span class="dash">—</span></td>
-            <td><span class="dash">—</span></td>
-            <td><span class="dash">—</span></td>
-            <td class="avg-col"><span class="dash">—</span></td>
-          </tr>
-          <tr>
-            <td>Qwen3-4B</td>
-            <td class="section-start">41.9 <span class="arrow">→</span> <span class="gain">53.2</span></td>
-            <td>15.9 <span class="arrow">→</span> <span class="gain">19.7</span></td>
-            <td>41.9 <span class="arrow">→</span> <span class="gain">49.0</span></td>
-            <td>32.5 <span class="arrow">→</span> <span class="gain">40.8</span></td>
-            <td>15.5 <span class="arrow">→</span> <span class="gain">20.4</span></td>
-            <td class="avg-col section-start">29.5 <span class="arrow">→</span> <span class="gain">36.6</span></td>
-            <td class="section-start">22.7 <span class="arrow">→</span> <span class="gain">27.8</span></td>
-            <td>9.7 <span class="arrow">→</span> <span class="gain">14.3</span></td>
-            <td>38.7 <span class="arrow">→</span> <span class="gain">44.9</span></td>
-            <td class="avg-col">23.7 <span class="arrow">→</span> <span class="gain">29.0</span></td>
-          </tr>
-          <tr>
-            <td>Qwen3-8B</td>
-            <td class="section-start">50.4 <span class="arrow">→</span> <span class="gain">57.0</span></td>
-            <td>23.9 <span class="arrow">→</span> <span class="gain">29.7</span></td>
-            <td>46.3 <span class="arrow">→</span> <span class="gain">55.1</span></td>
-            <td>47.7 <span class="arrow">→</span> <span class="gain">57.6</span></td>
-            <td>24.8 <span class="arrow">→</span> <span class="gain">30.8</span></td>
-            <td class="avg-col section-start">38.6 <span class="arrow">→</span> <span class="gain">46.0</span></td>
-            <td class="section-start">26.0 <span class="arrow">→</span> <span class="gain">30.2</span></td>
-            <td>10.0 <span class="arrow">→</span> <span class="gain">14.1</span></td>
-            <td>41.6 <span class="arrow">→</span> <span class="gain">46.8</span></td>
-            <td class="avg-col">25.2 <span class="arrow">→</span> <span class="gain">28.2</span></td>
-          </tr>
-          <tr>
-            <td>Gemma3-4B</td>
-            <td class="section-start">40.0 <span class="arrow">→</span> <span class="gain">49.2</span></td>
-            <td>17.2 <span class="arrow">→</span> <span class="loss">16.1</span></td>
-            <td>42.8 <span class="arrow">→</span> <span class="gain">52.2</span></td>
-            <td>27.7 <span class="arrow">→</span> <span class="gain">37.9</span></td>
-            <td>12.3 <span class="arrow">→</span> <span class="gain">14.7</span></td>
-            <td class="avg-col section-start">28.0 <span class="arrow">→</span> <span class="gain">34.0</span></td>
-            <td class="section-start"><span class="dash">—</span></td>
-            <td><span class="dash">—</span></td>
-            <td><span class="dash">—</span></td>
-            <td class="avg-col"><span class="dash">—</span></td>
-          </tr>
-          <tr>
-            <td>Gemma3-12B</td>
-            <td class="section-start">54.9 <span class="arrow">→</span> <span class="gain">59.1</span></td>
-            <td>31.6 <span class="arrow">→</span> <span class="gain">36.1</span></td>
-            <td>52.0 <span class="arrow">→</span> <span class="gain">53.9</span></td>
-            <td>55.7 <span class="arrow">→</span> <span class="gain">64.3</span></td>
-            <td>31.0 <span class="arrow">→</span> <span class="gain">37.5</span></td>
-            <td class="avg-col section-start">45.0 <span class="arrow">→</span> <span class="gain">50.2</span></td>
-            <td class="section-start">34.0 <span class="arrow">→</span> <span class="gain">35.0</span></td>
-            <td>12.7 <span class="arrow">→</span> <span class="gain">14.8</span></td>
-            <td>38.0 <span class="arrow">→</span> <span class="gain">45.2</span></td>
-            <td class="avg-col">28.2 <span class="arrow">→</span> <span class="gain">31.6</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem;">
-      Green = DivInit improves; red = DivInit regresses. Dashes indicate models not evaluated on open-web benchmarks (hardware constraints). Qwen3-1.7B and Gemma3-4B do not run GAIA / HLE / WebWalker.
-    </p>
   </div>
 </section>
 
-<!-- ── CITATION ── -->
-<section id="citation">
-  <div class="container">
-    <h2>Citation</h2>
-    <p>If you find this work useful, please cite:</p>
-    <div class="bib-wrap">
-      <pre class="bibtex">@article{murali2026divinit,
+<!-- ── Introduction ── -->
+<section class="section" id="section-intro">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column">
+        <h2 class="title is-3">🔍 Introduction</h2>
+        <div class="content has-text-justified teaser-text">
+          <p>
+            Parallel agentic search runs <i>k</i> independent ReAct-style threads and aggregates their answers via pass@<i>k</i>. At temperature &gt; 0, you would expect the threads to explore different regions of the evidence space. Instead, they issue near-identical turn-1 queries, retrieve overlapping documents, and arrive at correlated conclusions. Scaling the thread count amplifies this redundancy rather than resolving it.
+          </p>
+          <p>
+            We introduce <b class="highlight-blob">DivInit</b> — a single-intervention fix that requires no training, no reward model, and no additional search budget. One shared LLM call generates a pool of <i>n</i> candidate queries; greedy max-min Jaccard selection picks <i>k</i> maximally diverse seeds; each thread starts from its own seed. Everything from turn 2 onward is unchanged.
+          </p>
+          <p>
+            Across five open-weight models and eight benchmarks, DivInit improves pass@4 by <b class="highlight-blob">+5–7 points on multi-hop QA</b> at matched compute. Gains are consistent across models and scale with model capacity, pointing to a capability floor below which models cannot productively act on varied initializations.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Problem: Anchor Collapse ── -->
+<section class="section" id="section-problem" style="background: #fafafa;">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">🪝 Anchor Collapse</h2>
+
+    <div class="content has-text-justified" style="max-width: 800px; margin: 0 auto 1.5rem;">
+      <p class="teaser-text">
+        We measure turn-1 diversity using <b class="highlight-blob">QPD</b> (Query Pairwise Distance) — mean token-level Jaccard distance across all pairs of thread-1 queries. Standard parallel sampling consistently clusters at QPD ≈ 0.2 regardless of temperature. The distribution barely shifts as <i>T</i> increases: the problem is structural, not stochastic.
+      </p>
+    </div>
+
+    <div class="intro-figures" style="margin-bottom: 2rem;">
+      <div class="intro-fig-item">
+        <img src="paper_assets/figures/fig2/qpd_density.png"
+             alt="QPD density: standard threads cluster at low diversity; DivInit shifts distribution right.">
+        <p class="figure-caption">
+          <b>Query diversity at turn 1.</b> Standard parallel sampling (blue) concentrates at low QPD across all temperatures. DivInit (orange) shifts the distribution toward high diversity. Temperature tuning does not close the gap.
+        </p>
+      </div>
+      <div class="intro-fig-item">
+        <img src="paper_assets/figures/fig1/turn1_imprint.png"
+             alt="Turn-1 imprint: turn-1 QPD strongly predicts full-trajectory QPD.">
+        <p class="figure-caption">
+          <b>Turn-1 diversity predicts full-trajectory diversity</b> (ρ = 0.42 / 0.35). The first query is not one step among many — it imprints the entire trajectory. Standard threads cluster at low QPD throughout; DivInit separates them permanently.
+        </p>
+      </div>
+    </div>
+
+    <div class="content has-text-justified" style="max-width: 800px; margin: 0 auto;">
+      <p class="teaser-text">
+        Low turn-1 QPD is not cosmetic: it means threads retrieve the same documents at turn 1, reason over the same evidence, and fail for the same reasons. Correlated failures are irreducible by adding more threads — they are reduced only by breaking the correlation at its source.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Method: DivInit ── -->
+<section class="section" id="section-method">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">⚡ DivInit</h2>
+
+    <div class="content has-text-justified" style="max-width: 800px; margin: 0 auto 1.5rem;">
+      <p class="teaser-text">
+        One intervention, at turn 1 only. No training, no reward model, no embeddings required.
+      </p>
+    </div>
+
+    <div style="max-width: 720px; margin: 0 auto;">
+      <div class="method-steps">
+        <div class="method-step">
+          <div class="step-number">1</div>
+          <div class="step-text">
+            <b>Generate a pool of <i>n</i> candidate queries</b> in a single shared LLM call.
+            This is the only additional overhead DivInit introduces relative to a standard single-thread run.
+          </div>
+        </div>
+        <div class="method-step">
+          <div class="step-number">2</div>
+          <div class="step-text">
+            <b>Select <i>k</i> diverse seeds via greedy max-min Jaccard</b> (MMR with λ = 0).
+            Iteratively pick the candidate with the largest minimum Jaccard distance to the already-selected set.
+            No model calls, no embeddings — milliseconds of token arithmetic.
+          </div>
+        </div>
+        <div class="method-step">
+          <div class="step-number">3</div>
+          <div class="step-text">
+            <b>Launch one thread per seed.</b> Each thread issues its assigned seed as its turn-1 search query.
+            From turn 2 onward, all threads run standard ReAct — DivInit is not involved again.
+          </div>
+        </div>
+      </div>
+
+      <div class="compute-box">
+        <div><span class="clabel">Standard:</span> <span class="cval">k × T</span> &nbsp;<span class="cnote">calls &nbsp;(k independent turn-1 calls)</span></div>
+        <div><span class="clabel">DivInit:</span> &nbsp;<span class="cval">1 + k(T−1)</span> &nbsp;<span class="cnote">calls &nbsp;(one shared pool call; k−1 fewer total)</span></div>
+      </div>
+
+      <div class="content has-text-justified">
+        <p class="teaser-text">
+          With <i>k</i> = 4 threads and <i>T</i> = 8 turns, DivInit makes 29 LLM calls vs. 32 for standard parallel sampling.
+          DivInit is <b class="highlight-blob">strictly cheaper</b> at matched thread count, not just competitively priced.
+        </p>
+        <p class="teaser-text" style="margin-top: 1rem;">
+          We compared greedy Jaccard against dense sentence-embedding selection (all-MiniLM-L6-v2) across pool sizes 8–64. Jaccard matches or outperforms dense selection at every pool size — for short, keyword-rich search queries, token overlap is a well-calibrated proxy for semantic similarity, and it requires no embedding model.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Results ── -->
+<section class="section" id="section-results" style="background: #fafafa;">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">📊 Results</h2>
+
+    <div class="content has-text-justified" style="max-width: 800px; margin: 0 auto 2rem;">
+      <p class="teaser-text">
+        We evaluate pass@4 across five open-weight models (Qwen3-1.7B/4B/8B, Gemma3-4B/12B) and eight benchmarks: five multi-hop QA tasks (HotpotQA, MuSiQue, 2WikiMultihopQA, Bamboogle, FRAMES) and three open-web tasks (GAIA, HLE, WebWalker). All runs use <i>k</i> = 4 threads, pool size <i>n</i> = 16, and 8 turns per thread.
+      </p>
+    </div>
+
+    <!-- Two figures side by side -->
+    <div class="intro-figures" style="margin-bottom: 2.5rem;">
+      <div class="intro-fig-item" style="max-width: 400px;">
+        <img src="paper_assets/figures/fig3/passk_sweep.png"
+             alt="pass@k sweep: DivInit widens the gap as k increases.">
+        <p class="figure-caption">
+          <b>pass@k vs. thread count.</b> The gap widens as <i>k</i> grows — more threads amplify the benefit of diverse initialization.
+        </p>
+      </div>
+      <div class="intro-fig-item" style="max-width: 400px;">
+        <img src="paper_assets/figures/fig4/gain_vs_size.png"
+             alt="Gain vs. model size: larger models benefit more from DivInit.">
+        <p class="figure-caption">
+          <b>Gain scales with model capacity.</b> Absolute pass@4 improvement (DivInit − Standard) per Qwen3 model size. Near-zero at 1.7B; largest at 8B.
+        </p>
+      </div>
+    </div>
+
+    <div class="content has-text-justified" style="max-width: 800px; margin: 0 auto 1.5rem;">
+      <p class="teaser-text">
+        DivInit improves pass@4 by <b class="highlight-blob">+5–7 points on multi-hop QA</b> at matched compute across all five models. Open-web gains are smaller but consistent. The capacity scaling pattern suggests a capability floor: small models may lack the reasoning depth to productively diverge from distinct starting points.
+      </p>
+    </div>
+
+    <!-- Full results table -->
+    <div style="max-width: 900px; margin: 0 auto;">
+      <p style="text-align:center; font-family:'Google Sans',sans-serif; font-weight:600; margin-bottom:0.75rem; color:#333;">
+        pass@4 (%) — Standard → DivInit
+      </p>
+      <div class="results-table-wrap">
+        <table class="results-table">
+          <thead>
+            <tr class="group-row">
+              <th></th>
+              <th colspan="6" class="sec-start" style="text-align:center;">Multi-hop QA</th>
+              <th colspan="4" class="sec-start" style="text-align:center;">Open-Web</th>
+            </tr>
+            <tr>
+              <th style="text-align:left;">Model</th>
+              <th class="sec-start">HpQA</th>
+              <th>MuSi</th>
+              <th>2Wiki</th>
+              <th>Bambo</th>
+              <th>FRAMES</th>
+              <th style="background:#fff8f0;">Avg</th>
+              <th class="sec-start">GAIA</th>
+              <th>HLE</th>
+              <th>WebWalker</th>
+              <th style="background:#fff8f0;">Avg</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Qwen3-1.7B</td>
+              <td class="sec-start">42.9 <span class="arrow-sep">→</span> <span class="gain">43.8</span></td>
+              <td>14.5 <span class="arrow-sep">→</span> <span class="gain">15.6</span></td>
+              <td>37.6 <span class="arrow-sep">→</span> <span class="gain">41.5</span></td>
+              <td>16.8 <span class="arrow-sep">→</span> <span class="gain">24.3</span></td>
+              <td>13.1 <span class="arrow-sep">→</span> <span class="gain">13.6</span></td>
+              <td class="avg-td sec-start">25.0 <span class="arrow-sep">→</span> <span class="gain">27.8</span></td>
+              <td class="sec-start"><span class="dash">—</span></td>
+              <td><span class="dash">—</span></td>
+              <td><span class="dash">—</span></td>
+              <td class="avg-td"><span class="dash">—</span></td>
+            </tr>
+            <tr>
+              <td>Qwen3-4B</td>
+              <td class="sec-start">41.9 <span class="arrow-sep">→</span> <span class="gain">53.2</span></td>
+              <td>15.9 <span class="arrow-sep">→</span> <span class="gain">19.7</span></td>
+              <td>41.9 <span class="arrow-sep">→</span> <span class="gain">49.0</span></td>
+              <td>32.5 <span class="arrow-sep">→</span> <span class="gain">40.8</span></td>
+              <td>15.5 <span class="arrow-sep">→</span> <span class="gain">20.4</span></td>
+              <td class="avg-td sec-start">29.5 <span class="arrow-sep">→</span> <span class="gain">36.6</span></td>
+              <td class="sec-start">22.7 <span class="arrow-sep">→</span> <span class="gain">27.8</span></td>
+              <td>9.7 <span class="arrow-sep">→</span> <span class="gain">14.3</span></td>
+              <td>38.7 <span class="arrow-sep">→</span> <span class="gain">44.9</span></td>
+              <td class="avg-td">23.7 <span class="arrow-sep">→</span> <span class="gain">29.0</span></td>
+            </tr>
+            <tr>
+              <td>Qwen3-8B</td>
+              <td class="sec-start">50.4 <span class="arrow-sep">→</span> <span class="gain">57.0</span></td>
+              <td>23.9 <span class="arrow-sep">→</span> <span class="gain">29.7</span></td>
+              <td>46.3 <span class="arrow-sep">→</span> <span class="gain">55.1</span></td>
+              <td>47.7 <span class="arrow-sep">→</span> <span class="gain">57.6</span></td>
+              <td>24.8 <span class="arrow-sep">→</span> <span class="gain">30.8</span></td>
+              <td class="avg-td sec-start">38.6 <span class="arrow-sep">→</span> <span class="gain">46.0</span></td>
+              <td class="sec-start">26.0 <span class="arrow-sep">→</span> <span class="gain">30.2</span></td>
+              <td>10.0 <span class="arrow-sep">→</span> <span class="gain">14.1</span></td>
+              <td>41.6 <span class="arrow-sep">→</span> <span class="gain">46.8</span></td>
+              <td class="avg-td">25.2 <span class="arrow-sep">→</span> <span class="gain">28.2</span></td>
+            </tr>
+            <tr>
+              <td>Gemma3-4B</td>
+              <td class="sec-start">40.0 <span class="arrow-sep">→</span> <span class="gain">49.2</span></td>
+              <td>17.2 <span class="arrow-sep">→</span> <span class="loss">16.1</span></td>
+              <td>42.8 <span class="arrow-sep">→</span> <span class="gain">52.2</span></td>
+              <td>27.7 <span class="arrow-sep">→</span> <span class="gain">37.9</span></td>
+              <td>12.3 <span class="arrow-sep">→</span> <span class="gain">14.7</span></td>
+              <td class="avg-td sec-start">28.0 <span class="arrow-sep">→</span> <span class="gain">34.0</span></td>
+              <td class="sec-start"><span class="dash">—</span></td>
+              <td><span class="dash">—</span></td>
+              <td><span class="dash">—</span></td>
+              <td class="avg-td"><span class="dash">—</span></td>
+            </tr>
+            <tr>
+              <td>Gemma3-12B</td>
+              <td class="sec-start">54.9 <span class="arrow-sep">→</span> <span class="gain">59.1</span></td>
+              <td>31.6 <span class="arrow-sep">→</span> <span class="gain">36.1</span></td>
+              <td>52.0 <span class="arrow-sep">→</span> <span class="gain">53.9</span></td>
+              <td>55.7 <span class="arrow-sep">→</span> <span class="gain">64.3</span></td>
+              <td>31.0 <span class="arrow-sep">→</span> <span class="gain">37.5</span></td>
+              <td class="avg-td sec-start">45.0 <span class="arrow-sep">→</span> <span class="gain">50.2</span></td>
+              <td class="sec-start">34.0 <span class="arrow-sep">→</span> <span class="gain">35.0</span></td>
+              <td>12.7 <span class="arrow-sep">→</span> <span class="gain">14.8</span></td>
+              <td>38.0 <span class="arrow-sep">→</span> <span class="gain">45.2</span></td>
+              <td class="avg-td">28.2 <span class="arrow-sep">→</span> <span class="gain">31.6</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:0.85rem; color:#888; text-align:center; margin-top:0.5rem;">
+        Green = improvement; red = regression. Dashes: model not evaluated on open-web benchmarks (hardware constraints).
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ── BibTeX ── -->
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title is-3 has-text-centered">📄 BibTeX</h2>
+    <p style="font-family:'Google Sans',sans-serif; text-align:center; color:#555; margin-bottom:1rem;">
+      If you find this work useful, please cite:
+    </p>
+    <div style="position:relative;">
+      <pre class="bibtex-block">@article{murali2026divinit,
   title     = {Beyond Parallel Sampling: Diverse Query Initialization
                for Agentic Search},
   author    = {Murali, Sidhaarth and Coelho, Jo{\~a}o and Ning, Jingjie
@@ -674,7 +645,7 @@
   url       = {https://arxiv.org/abs/2606.17209},
   note      = {Preprint}
 }</pre>
-      <button class="copy-btn" onclick="
+      <button class="bibtex-copy" onclick="
         navigator.clipboard.writeText(this.previousElementSibling.textContent);
         this.textContent = 'Copied!';
         setTimeout(() => this.textContent = 'Copy', 1800);
@@ -683,19 +654,45 @@
   </div>
 </section>
 
-<!-- ── FOOTER ── -->
-<footer>
-  <p>
-    Carnegie Mellon University &nbsp;·&nbsp; IST Lisboa / INESC-ID &nbsp;·&nbsp; Universidade Nova de Lisboa
-  </p>
-  <p style="margin-top:0.4rem;">
-    <a href="https://github.com/cxcscmu/diverse-query-initialization">GitHub</a>
-    &nbsp;·&nbsp;
-    <a href="https://arxiv.org/abs/2606.17209">arXiv:2606.17209</a>
-    &nbsp;·&nbsp;
-    <a href="LICENSE">MIT License</a>
-  </p>
+<!-- ── Footer ── -->
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <p>
+        Carnegie Mellon University &nbsp;·&nbsp; IST Lisboa / INESC-ID &nbsp;·&nbsp; Universidade Nova de Lisboa
+      </p>
+      <p>
+        <a href="https://github.com/cxcscmu/diverse-query-initialization" class="icon-link">
+          <i class="fab fa-github" style="font-size:1.4rem;"></i>
+        </a>
+      </p>
+      <p style="color:#999; font-size:0.85rem;">
+        Page design adapted from <a href="https://general-agentbench.github.io/" style="color:#999;">General AgentBench</a>.
+        Licensed under <a href="LICENSE" style="color:#999;">MIT</a>.
+      </p>
+    </div>
+  </div>
 </footer>
+
+<script>
+  // TOC scroll highlighting
+  const sections = ['section-intro','section-problem','section-method','section-results','BibTeX'];
+  const links = document.querySelectorAll('.toc-link');
+
+  function updateTOC() {
+    let current = sections[0];
+    for (const id of sections) {
+      const el = document.getElementById(id);
+      if (el && el.getBoundingClientRect().top <= 120) current = id;
+    }
+    links.forEach(l => {
+      l.classList.toggle('is-active', l.dataset.section === current);
+    });
+  }
+
+  window.addEventListener('scroll', updateTOC, { passive: true });
+  updateTOC();
+</script>
 
 </body>
 </html>
